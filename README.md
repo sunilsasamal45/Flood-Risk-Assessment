@@ -1,304 +1,274 @@
-# 🌊 Building AI-Powered Flood Intelligence System
+# 🌊 India Flood Intelligence System
 
-Welcome! This guide will help you build and deploy an **AI-powered flood intelligence and disaster response system** using NVIDIA NIM and h2oGPTe.
+An AI-powered flood intelligence and disaster response system built for **India**, monitoring all major river basins in real-time using Open-Meteo Flood API (GloFAS), NVIDIA NIM AI models, and multi-agent coordination.
 
-## What You'll Build
-
-An intelligent system that combines:
-- **Real-time flood monitoring** from USGS and NOAA data sources
-- **AI-powered risk assessment** using NVIDIA's latest language models
-- **Multi-agent coordination** with 5 specialized AI agents
-- **Predictive analytics** for flood forecasting
-- **Interactive dashboard** for monitoring and alerts
-
-By the end of this guide, you'll have a fully functional flood intelligence system running with live data.
+![India Flood Intelligence](https://img.shields.io/badge/India-Flood%20Intelligence-blue)
+![Python](https://img.shields.io/badge/Python-3.11-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)
+![React](https://img.shields.io/badge/React-19-blue)
+![Docker](https://img.shields.io/badge/Docker-Ready-blue)
+![License](https://img.shields.io/badge/License-Apache%202.0-yellow)
 
 ---
 
-## What You Need
+## What This System Does
 
-### Required
-- ✅ **NVIDIA API Key** - Get your free key from [build.nvidia.com](https://build.nvidia.com)
+A real-time flood intelligence platform covering **8 major India river basins** with **45+ river monitoring sites**:
 
-### Optional (Recommended)
-- 🔹 **NGC API Key** - For running a local NVIDIA NIM model (requires GPU)
-  - Get it from [NGC Catalog](https://catalog.ngc.nvidia.com/)
-  - Only needed if you have an NVIDIA GPU available
-
-- 🔹 **H2OGPTE Access** - For advanced AutoML features
-  - Get access at [h2o.ai](https://h2o.ai/platform/enterprise-h2ogpte/)
-  - The system works without this, but some features will be limited
-
-**Note**: If you don't have H2OGPTE or NGC keys, that's okay! The system will work with just the NVIDIA API key.
+- **Live river discharge monitoring** from Open-Meteo Flood API (GloFAS — free, no key needed)
+- **AI-powered flood risk assessment** using `nvidia/llama-3.1-nemotron-ultra-253b-v1`
+- **IMD rainfall alert integration** — Heavy (≥64.5mm), Very Heavy (≥115.5mm/day) thresholds
+- **Multi-agent AI system** with 4 specialised India flood agents
+- **Interactive dashboard** with India map, real-time alerts, and chatbot
+- **NDMA/NDRF emergency guidance** for flood response coordination
 
 ---
 
-## Getting Started
+## India River Basins Covered
 
-### Step 1: Open the Notebook
-
-1. In your Jupyter environment, navigate to the notebook:
-
-   ```
-   Building_Flood_Intelligence_Agents.ipynb
-   ```
-
-2. Open the notebook - you'll see it's organized into clear sections
-
-3. You'll follow the notebook from top to bottom, running cells as you go
-
-**Important**: Read the instructions in each section before running cells!
+| Basin | Key Sites | States |
+|---|---|---|
+| 🔵 Ganga | Haridwar, Prayagraj, Varanasi, Patna, Yamuna Delhi | UK, UP, Bihar, WB |
+| 🔵 Brahmaputra | Guwahati, Dibrugarh, Manas, Barak | Assam, AR |
+| 🔵 Mahanadi | Hirakud Dam, Cuttack, Tel | Odisha, CG |
+| 🔵 Godavari | Nashik, Rajahmundry, Pranhita | MH, TG, AP |
+| 🔵 Krishna | Vijayawada, Tungabhadra, Bhima | KA, MH, AP |
+| 🔵 Narmada | Jabalpur, Sardar Sarovar, Tawa | MP, GJ |
+| 🔵 Kaveri | KRS Dam, Tiruchirappalli, Hemavathi | KA, TN |
+| 🔵 Indus (India) | Sutlej, Beas, Ravi, Chenab, Jhelum | PB, HP, J&K |
 
 ---
 
-## Following the Notebook
+## Architecture
 
-The notebook guides you through everything step-by-step. Here's what to expect:
-
-### 📋 Section 1: Setup
-
-This section sets up your environment and deploys the application.
-
-**What you'll do:**
-
-1. **Install Python Dependencies** (Cell 5)
-   - Run the cell to install required libraries
-   - **⚠️ Important**: Restart your kernel after this step
-   - Don't run this cell again after restarting
-
-2. **Collect API Keys** (Cells 7-10)
-   - The notebook will prompt you to enter your API keys
-   - Your inputs are hidden for security
-   - Required: NVIDIA API Key
-   - Optional: NGC API Key, H2OGPTE credentials
-   - Just press Enter to skip optional keys
-
-3. **Generate Configuration File** (Cells 12-13)
-   - Run the cells to create your configuration
-   - The notebook shows a summary of what was configured
-   - A file called `flood_intelligence.env` is created automatically
-
-4. **Pull Docker Images** (Cells 17-18, optionally 23-27)
-   - This downloads the application containers
-   - Takes 5-10 minutes depending on your connection
-   - You'll see progress bars
-   - Optional: If you have a GPU, you can pull the NIM LLM image (cells 23-27)
-
-5. **Deploy the Application** (Cell 30 or 32)
-   - Run the docker compose command
-   - **With GPU**: Use cell 30 to deploy with local NIM LLM
-   - **Without GPU**: Use cell 32 for standard deployment
-   - Wait 2-3 minutes for services to start
-
-6. **Verify Deployment** (Cell 34)
-   - Check that all containers show "healthy" status
-   - If not healthy, wait another minute and check again
-
-**✅ Checkpoint**: Once all containers are healthy, your system is deployed!
-
-### 🚀 Section 2: NVIDIA NIM Integration
-
-Learn how NVIDIA's language models power the flood intelligence system:
-- Test different NVIDIA models
-- See streaming responses in action
-- Compare model performance
-- Try the LLM-as-Judge evaluation feature
-
-**What you'll do**: Run the cells to see AI models analyzing flood scenarios in real-time.
-
-### 🧠 Section 3: h2oGPTe Agent Integration
-
-Explore advanced AutoML capabilities (if you configured H2OGPTE):
-- Get AI guidance on building ML models
-- Learn feature engineering techniques
-- Understand model training best practices
-
-**Note**: This section is skipped if you don't have H2OGPTE credentials - that's okay!
-
-### 🤝 Section 4: Multi-Agent System
-
-Interact with the 5 specialized AI agents:
-- **Data Collector**: Pulls real-time flood data
-- **Risk Analyzer**: Calculates flood risk scores
-- **Emergency Responder**: Manages alerts and evacuations
-- **AI Predictor**: Generates flood forecasts
-- **H2OGPTE ML Agent**: Trains and optimizes models (optional)
-
-**What you'll do**:
-- View agent status and insights
-- Run agent workflows
-- See how agents coordinate to analyze flood risk
-
-### 🌐 Section 5: Real-World Data Integration
-
-Work with live data from government agencies:
-- USGS water monitoring stations
-- NOAA flood alerts
-- Weather forecasts
-
-**What you'll do**:
-- Refresh live data from monitoring stations
-- View watershed data in tables
-- See risk scores and trends
-
----
-
-## Accessing Your Application
-
-### Web Dashboard
-
-Once deployment is complete (Section 1), you can access the interactive dashboard:
-
-1. Goto the "Access" section of your deployed instance on brev.
-2. At the bottom of the page, find "Using Ports" section.
-3. If the cloud provider allows forwarding ports, there will be a clickable link similar to x.x.x.x:8090 under the "TCP/UDP Ports" section.
-2. Open that URL in your browser
-3. You'll see the Flood Intelligence Dashboard with:
-   - Real-time flood monitoring
-   - Interactive watershed maps
-   - Agent status and insights
-   - Alert management
-   - Data visualizations
-
----
-
-## Troubleshooting
-
-### Containers Not Healthy
-
-**Problem**: After deploying, containers don't show "(healthy)" status
-
-**Solutions**:
-1. Wait 20-30 minutes - services take time to initialize
-2. Run this cell again to check status:
-   ```python
-   !docker ps -a
-   ```
-3. If still not healthy after 5 minutes, check logs:
-   ```python
-   !docker logs flood-intelligence-web
-   ```
-
-### Can't Access the Dashboard
-
-**Problem**: Port 8090 doesn't load or shows an error
-
-**Solutions**:
-1. Verify containers are running and healthy (see above)
-2. Wait 2-3 minutes after deployment
-3. Try refreshing your browser
-4. Check that the deployment step (cell 30 or 32) completed without errors
-
-### API Key Errors
-
-**Problem**: Cells show "API key required" errors
-
-**Solutions**:
-1. Make sure you ran all cells in Section 1, Step 2 (collecting keys)
-2. Verify you entered the keys correctly (check for extra spaces)
-3. Re-run the key collection cells if needed
-4. After fixing keys, restart the deployment:
-   ```python
-   !docker compose -f ../deployment/nvidia-launchable/docker-compose.yml --env-file ./flood_intelligence.env down
-   !docker compose -f ../deployment/nvidia-launchable/docker-compose.yml --env-file ./flood_intelligence.env up -d
-   ```
-
-### Out of Memory
-
-**Problem**: Containers crash or system becomes slow
-
-**Solutions**:
-1. If you deployed with local NIM (cell 30), try without it (cell 32 instead)
-2. Close other applications to free up memory
-3. Restart the containers:
-   ```python
-   !docker compose --env-file ./flood_intelligence.env restart
-   ```
-
-### Notebook Kernel Issues
-
-**Problem**: "Kernel died" or cells won't run
-
-**Solutions**:
-1. Restart the kernel from the Kernel menu
-2. Don't re-run the dependency installation (cell 5) after restarting
-3. Re-run cells from Section 1, Step 2 onwards
-
----
-
-## Next Steps
-
-Once your system is running, you can:
-
-1. **Explore the Agents** - Run the examples in Section 4 to see agents in action
-2. **Monitor Live Data** - Use Section 5 to refresh and view real-time watershed data
-3. **Customize** - Modify the prompts and queries to test different scenarios
-4. **Add More Data** - The system can monitor any watershed with USGS data
-5. **Train Models** - If you have H2OGPTE, try the AutoML features in Section 3
-
-### Learning Resources
-
-- **NVIDIA NIM**: [build.nvidia.com](https://build.nvidia.com)
-- **USGS Water Data**: [waterdata.usgs.gov](https://waterdata.usgs.gov)
-- **NOAA Flood Alerts**: [weather.gov](https://weather.gov)
-- **H2O.ai**: [h2o.ai](https://h2o.ai)
-
----
-
-## Quick Reference
-
-### Check Container Status
-```python
-!docker ps -a
 ```
-All containers should show "Up" and "(healthy)"
-
-### View Logs
-```python
-!docker logs flood-intelligence-web
-!docker logs flood-intelligence-redis
-```
-
-### Restart Services
-```python
-!docker compose --env-file ./flood_intelligence.env restart
-```
-
-### Stop Services
-```python
-!docker compose --env-file ./flood_intelligence.env down
-```
-
-### Start Services Again
-```python
-!docker compose --env-file ./flood_intelligence.env up -d
+┌─────────────────────────────────────────────────────┐
+│                  React Frontend (Vite)               │
+│  India Map · Risk Dashboard · AI Chatbot · Alerts   │
+└──────────────────────┬──────────────────────────────┘
+                       │ REST + SSE
+┌──────────────────────▼──────────────────────────────┐
+│              FastAPI Backend (Python 3.11)           │
+│                                                      │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────┐  │
+│  │Data Collector│  │Risk Analyzer │  │ Predictor │  │
+│  │Open-Meteo   │  │0-10 Score    │  │24-72h     │  │
+│  │IMD Rainfall │  │CWC Thresholds│  │Forecast   │  │
+│  └─────────────┘  └──────────────┘  └───────────┘  │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │       Emergency Responder (NDMA/NDRF)           │ │
+│  │  SACHET · IMD · Doordarshan · AIR · State DMA  │ │
+│  └─────────────────────────────────────────────────┘ │
+│                                                      │
+│  NVIDIA NIM: llama-3.1-nemotron-ultra-253b-v1       │
+└──────────────────────┬──────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────┐
+│                  Redis (Task Queue)                  │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Need Help?
+## AI Models Used
 
-If you encounter issues:
-
-1. Check the Troubleshooting section above
-2. Review the error messages in failed cells
-3. Check container logs with the commands above
-4. Make sure you completed all steps in Section 1 (Setup)
-
----
-
-## About This System
-
-This flood intelligence system is built with:
-- **NVIDIA NIM** - High-performance AI inference
-- **h2oGPTe** - Enterprise AI and AutoML
-- **FastMCP** - Multi-agent coordination
-- **Real-time APIs** - USGS, NOAA, weather data
-
-It demonstrates how AI can be used for disaster response and public safety.
+| Component | Model | Purpose |
+|---|---|---|
+| AI Chat & Agents | `nvidia/llama-3.1-nemotron-ultra-253b-v1` | Flood Q&A, risk analysis, emergency guidance |
+| Risk Analyzer Agent | `nvidia/llama-3.1-nemotron-ultra-253b-v1` | Multi-factor India flood risk scoring |
+| Predictor Agent | `nvidia/llama-3.1-nemotron-ultra-253b-v1` | 24–72h river discharge forecasting |
+| Data Collector Agent | `nvidia/llama-3.1-nemotron-ultra-253b-v1` | India data collection orchestration |
+| Flood Data | Open-Meteo GloFAS API | River discharge (free, no key needed) |
 
 ---
 
-**🌊 Ready to start?** Open the notebook and begin with Section 1!
+## Risk Scoring
 
-*Built with ❤️ for AI for Good using H2O.ai and NVIDIA NIM*
+```
+flow_ratio  = current_discharge (m³/s) / CWC_flood_stage
+risk_score  = min(10, flow_ratio × 8)
+
+LOW      < 4.0   — Normal conditions
+MODERATE 4.0–6.0 — Monitor closely
+HIGH     6.0–8.0 — Prepare response
+CRITICAL > 8.0   — Immediate action
+```
+
+IMD Rainfall thresholds applied:
+- Light Rain: < 2.5 mm/day
+- Moderate: 2.5 – 64.5 mm/day
+- **Heavy Rain (Yellow): ≥ 64.5 mm/day**
+- **Very Heavy Rain (Orange): ≥ 115.5 mm/day**
+- **Extremely Heavy Rain (Red): ≥ 204.5 mm/day**
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Docker Desktop installed and running
+- NVIDIA API key from [build.nvidia.com](https://build.nvidia.com) (free)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/sunilsasamal45/Flood-Risk-Assessment.git
+cd Flood-Risk-Assessment
+```
+
+### 2. Set up environment
+
+```bash
+cp core/.env.example core/.env
+```
+
+Edit `core/.env` and add your NVIDIA API key:
+
+```env
+APP_NVIDIA_API_KEY=nvapi-your-key-here
+APP_AI_PROVIDER=nvidia
+APP_ENABLE_AUTH=false
+```
+
+### 3. Run with Docker
+
+```bash
+docker compose -f docker-compose.local.yml up --build
+```
+
+First run takes 3–5 minutes (downloads images, installs dependencies).
+
+### 4. Open the dashboard
+
+```
+http://localhost:8000
+```
+
+---
+
+## Project Structure
+
+```
+Flood-Risk-Assessment/
+├── core/                          # Python backend
+│   ├── src/flood_prediction/
+│   │   ├── server.py              # FastAPI routes
+│   │   ├── data_sources.py        # Open-Meteo + India river sites
+│   │   ├── db.py                  # SQLite database
+│   │   ├── settings.py            # App configuration
+│   │   └── agents/
+│   │       ├── data_collector.py  # Open-Meteo data collection
+│   │       ├── risk_analyzer.py   # CWC-based risk scoring
+│   │       ├── predictor.py       # 24-72h flood forecasting
+│   │       ├── emergency_responder.py  # NDMA/NDRF coordination
+│   │       ├── nat_base.py        # NVIDIA NAT agent orchestration
+│   │       └── nat/               # NAT agent config YMLs
+│   ├── requirements.txt           # Python dependencies
+│   └── .env.example               # Environment template
+├── ui/                            # React frontend (Vite + TypeScript)
+│   └── src/
+│       ├── components/
+│       │   ├── UnifiedDashboard.tsx   # Main dashboard
+│       │   ├── GlobalWatershedMap.tsx # India map (Leaflet)
+│       │   └── DataSourceBadge.tsx    # CWC/IMD/Open-Meteo badges
+│       ├── dashboard/page.tsx         # Dashboard page
+│       └── lib/api.ts                 # API client
+├── docker-compose.local.yml       # Local Docker setup
+├── Dockerfile                     # Multi-stage build
+├── test.py                        # India river data fetcher demo
+└── india_watershed_config.json    # All India basin configurations
+```
+
+---
+
+## API Keys
+
+| Key | Required | Where to Get | Cost |
+|---|---|---|---|
+| `APP_NVIDIA_API_KEY` | ✅ Yes | [build.nvidia.com](https://build.nvidia.com) | Free tier available |
+| `APP_H2OGPTE_API_KEY` | ❌ No | [h2o.ai](https://h2o.ai) | Optional AutoML |
+| Open-Meteo Flood API | ✅ Free | No key needed | Free forever |
+| IMD / CWC | ✅ Free | No key needed (via Open-Meteo) | Free forever |
+
+---
+
+## AI Agents
+
+### 1. Data Collector
+Fetches real-time river discharge from **Open-Meteo Flood API** (GloFAS) for 45+ India river monitoring sites. Also collects IMD rainfall warnings and Open-Meteo weather forecasts for flood-prone cities.
+
+### 2. Risk Analyzer
+Calculates flood risk scores (0–10) using CWC danger level thresholds. Tracks risk trends, detects rapid escalations, and monitors critical watershed count across all 8 India basins.
+
+### 3. AI Predictor
+Generates 24–72 hour flood forecasts using trend decay models and GloFAS ensemble data. Tracks model accuracy, detects prediction conflicts, and estimates critical period windows.
+
+### 4. Emergency Responder
+Coordinates with India's emergency systems — NDMA (helpline 1078), NDRF battalion tracking, SACHET alert platform, IMD district warnings, Doordarshan/AIR broadcasts, and State DMA systems.
+
+---
+
+## Data Sources
+
+| Source | Data | Cost |
+|---|---|---|
+| [Open-Meteo Flood API](https://open-meteo.com/en/docs/flood-api) | River discharge (GloFAS), 7-day forecast | Free |
+| [Open-Meteo Weather API](https://api.open-meteo.com) | Rainfall, temperature, humidity | Free |
+| [NVIDIA NIM](https://build.nvidia.com) | AI inference — llama-3.1-nemotron-ultra-253b-v1 | Free tier |
+
+---
+
+## Management Commands
+
+```bash
+# Start
+docker compose -f docker-compose.local.yml up
+
+# Stop
+docker compose -f docker-compose.local.yml down
+
+# View logs
+docker logs flood-web
+
+# Check status
+docker ps
+
+# Health check
+curl http://localhost:8000/health
+```
+
+---
+
+## Emergency Contacts (India)
+
+| Agency | Contact |
+|---|---|
+| NDMA National Helpline | **1078** |
+| NDRF | **011-24363260** |
+| IMD Weather | [mausam.imd.gov.in](https://mausam.imd.gov.in) |
+| CWC Flood Forecast | [cwc.gov.in](https://cwc.gov.in/flood-forecast) |
+| India WRIS | [indiawris.gov.in](https://indiawris.gov.in) |
+| NDMA SACHET Alerts | [sachet.ndma.gov.in](https://sachet.ndma.gov.in) |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.11, FastAPI, SQLite, RQ |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Leaflet |
+| AI | NVIDIA NIM (llama-3.1-nemotron-ultra-253b-v1), NVIDIA NAT |
+| Data | Open-Meteo Flood API (GloFAS), Open-Meteo Weather API |
+| Infrastructure | Docker, Redis |
+
+---
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE)
+
+---
+
+*Built for India flood disaster management using Open-Meteo GloFAS data and NVIDIA AI* 🇮🇳
