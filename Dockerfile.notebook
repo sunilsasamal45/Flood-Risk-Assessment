@@ -1,0 +1,11 @@
+ARG BASE_IMAGE=quay.io/jupyter/base-notebook:2025-10-13
+FROM $BASE_IMAGE
+
+RUN mamba install --yes 'openai' && \
+    mamba install --yes 'requests' && \
+    mamba install --yes 'pandas' && \
+    mamba clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+COPY --chown=${NB_UID}:${NB_GID} Building_Flood_Intelligence_Agents.ipynb "/home/${NB_USER}/work/"

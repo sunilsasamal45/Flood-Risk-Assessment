@@ -1,0 +1,164 @@
+{
+  "IN-GANGA": {
+    "name": "Ganga Basin",
+    "code": "IN-GANGA",
+    "description": "Ganga river basin \u2014 Uttarakhand, UP, Bihar, West Bengal",
+    "center_lat": 26.0,
+    "center_lng": 82.0,
+    "zoom": 6,
+    "state_codes": [
+      "UK",
+      "UP",
+      "BR",
+      "WB"
+    ],
+    "sites": [
+      "ganga_haridwar",
+      "ganga_allahabad",
+      "ganga_varanasi",
+      "ganga_patna",
+      "yamuna_delhi",
+      "yamuna_agra",
+      "ghaghra_ayodhya",
+      "sone_arrah",
+      "gandak_gandak_nagar"
+    ]
+  },
+  "IN-BRAHMAPUTRA": {
+    "name": "Brahmaputra Basin",
+    "code": "IN-BRAHMAPUTRA",
+    "description": "Brahmaputra river basin \u2014 Assam and Arunachal Pradesh",
+    "center_lat": 26.5,
+    "center_lng": 93.0,
+    "zoom": 6,
+    "state_codes": [
+      "AS",
+      "AR"
+    ],
+    "sites": [
+      "brahmaputra_guwahati",
+      "brahmaputra_dibrugarh",
+      "subansiri_north_lakhimpur",
+      "barak_silchar",
+      "kopili_kampur",
+      "manas_beki"
+    ]
+  },
+  "IN-MAHANADI": {
+    "name": "Mahanadi Basin",
+    "code": "IN-MAHANADI",
+    "description": "Mahanadi river basin \u2014 Chhattisgarh and Odisha",
+    "center_lat": 20.5,
+    "center_lng": 82.5,
+    "zoom": 6,
+    "state_codes": [
+      "CT",
+      "OD"
+    ],
+    "sites": [
+      "mahanadi_hirakud",
+      "mahanadi_cuttack",
+      "tel_kantamal",
+      "ib_brajrajnagar",
+      "jonk_jonk"
+    ]
+  },
+  "IN-GODAVARI": {
+    "name": "Godavari Basin",
+    "code": "IN-GODAVARI",
+    "description": "Godavari river basin \u2014 Maharashtra, Telangana, Andhra Pradesh",
+    "center_lat": 18.5,
+    "center_lng": 79.5,
+    "zoom": 6,
+    "state_codes": [
+      "MH",
+      "TG",
+      "AP"
+    ],
+    "sites": [
+      "godavari_nashik",
+      "godavari_rajahmundry",
+      "pranhita_pranhita",
+      "indravati_jagdalpur",
+      "wardha_arvi",
+      "wainganga_bamni"
+    ]
+  },
+  "IN-KRISHNA": {
+    "name": "Krishna Basin",
+    "code": "IN-KRISHNA",
+    "description": "Krishna river basin \u2014 Maharashtra, Karnataka, Andhra Pradesh",
+    "center_lat": 16.5,
+    "center_lng": 77.0,
+    "zoom": 6,
+    "state_codes": [
+      "MH",
+      "KA",
+      "AP"
+    ],
+    "sites": [
+      "krishna_sangam",
+      "krishna_vijayawada",
+      "tungabhadra_hospet",
+      "bhima_yadgir",
+      "ghataprabha_saundatti"
+    ]
+  },
+  "IN-INDUS": {
+    "name": "Indus Basin (India)",
+    "code": "IN-INDUS",
+    "description": "Indus tributaries \u2014 Punjab, Himachal Pradesh, J&K",
+    "center_lat": 32.0,
+    "center_lng": 76.0,
+    "zoom": 6,
+    "state_codes": [
+      "PB",
+      "HP",
+      "JK"
+    ],
+    "sites": [
+      "sutlej_ropar",
+      "beas_mandi",
+      "ravi_madhopur",
+      "chenab_akhnoor",
+      "jhelum_sangam"
+    ]
+  },
+  "IN-NARMADA": {
+    "name": "Narmada Basin",
+    "code": "IN-NARMADA",
+    "description": "Narmada river basin \u2014 Madhya Pradesh and Gujarat",
+    "center_lat": 22.5,
+    "center_lng": 77.5,
+    "zoom": 6,
+    "state_codes": [
+      "MP",
+      "GJ"
+    ],
+    "sites": [
+      "narmada_jabalpur",
+      "narmada_sardar_sarovar",
+      "tawa_itarsi",
+      "bargi_bargi"
+    ]
+  },
+  "IN-KAVERI": {
+    "name": "Kaveri Basin",
+    "code": "IN-KAVERI",
+    "description": "Kaveri river basin \u2014 Karnataka and Tamil Nadu",
+    "center_lat": 12.5,
+    "center_lng": 77.5,
+    "zoom": 6,
+    "state_codes": [
+      "KA",
+      "TN"
+    ],
+    "sites": [
+      "kaveri_krishnarajasagara",
+      "kaveri_trichy",
+      "hemavathi_gorur",
+      "arkavathi_kanakpura",
+      "bhavani_bhavani_sagar"
+    ]
+  }
+}

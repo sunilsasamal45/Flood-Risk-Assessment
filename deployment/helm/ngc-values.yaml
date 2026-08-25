@@ -1,0 +1,12 @@
+service:
+  type: NodePort
+
+ingress:
+  enabled: false
+
+nimllm:
+  enabled: true
+  model:
+    ngcAPISecret: ngc-api
+  imagePullSecrets:
+    - name: ngc-secret

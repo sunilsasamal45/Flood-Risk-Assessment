@@ -1,0 +1,102 @@
+# Basic settings
+replicaCount: 1
+
+image:
+  repository: h2oai-floodintelligence-app
+  registry: h2oairelease
+  # If tag is empty, the chart appVersion will be used
+  tag: v1.2.0
+  pullPolicy: IfNotPresent
+
+# Use an existing ServiceAccount name (keep it simple)
+serviceAccountName:
+
+# Optionally reference existing imagePullSecrets, e.g. created by your platform
+imagePullSecrets: []
+
+service:
+  # If using NodePort, optionally, specify the nodePort value
+  type: ClusterIP
+  nodePort:
+
+ingress:
+  enabled: true
+  hostName: example.com
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+resources:
+  requests:
+    cpu: 1
+    memory: 1Gi
+
+extraEnv: {}
+
+redis:
+  enabled: true
+  image:
+    repository: redis
+    registry: docker.io
+    tag: "8.2.1"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+h2ogpte:
+  url: "https://h2ogpte.cloud-dev.h2o.dev"
+  model: "claude-sonnet-4-20250514"
+  apiKey:
+
+nvidia:
+  apiKey:
+
+# NVIDIA NIM LLM configuration
+# This deploys the NIM model alongside the application
+nimllm:
+  enabled: false
+  image:
+    repository: "nvcr.io/nim/nvidia/llama-3.3-nemotron-super-49b-v1.5"
+    tag: "1.12.0"
+  model:
+    ngcAPISecret: ngc-api  # Reference to the NGC API secret (must be created separately)
+  imagePullSecrets:
+    - name: ngc-secret  # Reference to the NGC Docker registry secret (must be created separately)
+  service:
+    type: ClusterIP
+    openaiPort: 8000
+    annotations: {}
+    labels: {}
+    name: ""  # override the default service name
+
+notebook:
+  enabled: true
+  # If using NodePort, optionally specify the nodePort value
+  nodePort:
+  # Optionally reference existing imagePullSecrets for notebook container
+  imagePullSecrets: []
+  # Authentication token for Jupyter notebook access
+  # REQUIRED: Generate a secure random token before installation
+  #
+  # Quick generation methods:
+  #   Python:  python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+  #   OpenSSL: openssl rand -hex 32
+  #   UUID:    uuidgen
+  #
+  # Set during install: --set notebook.token=<your-secret-token>
+  # Users will need this token to access the notebook at /jupyter
+  token:
+  allowPasswordChange: false
+  image:
+    repository: h2oai-floodintelligence-notebook
+    registry: h2oairelease
+    tag: v1.2.0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi

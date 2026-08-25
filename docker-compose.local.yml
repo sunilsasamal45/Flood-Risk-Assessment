@@ -1,0 +1,44 @@
+services:
+
+  redis:
+    image: redis:8.2.1
+    container_name: flood-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flood-web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./core/.env
+    environment:
+      # Redis
+      - REDIS_ENABLED=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
+      - APP_REDIS_URL=redis://redis:6379
+      # App
+      - PORT=8000
+
+volumes:
+  redis-data:
+    name: flood-redis-data
