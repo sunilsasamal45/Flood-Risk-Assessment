@@ -70,11 +70,11 @@ async def collect_usgs_data(
         }
 
 @mcp.tool()
-async def collect_noaa_flood_data() -> Dict[str, Any]:
+async def collect_imd_flood_data() -> Dict[str, Any]:
     """Collect flood forecasts and alerts from NOAA."""
     try:
         logger.info("Data Collector: Collecting NOAA flood data")
-        result = await data_collector.collect_noaa_flood_data()
+        result = await data_collector.collect_imd_flood_data()
         return {
             "status": "success",
             "agent": "Data Collector",
@@ -82,7 +82,7 @@ async def collect_noaa_flood_data() -> Dict[str, Any]:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
     except Exception as e:
-        logger.error(f"Error in collect_noaa_flood_data: {e}")
+        logger.error(f"Error in collect_imd_flood_data: {e}")
         return {
             "status": "error",
             "agent": "Data Collector",
@@ -117,13 +117,13 @@ async def generate_data_insights() -> Dict[str, Any]:
 
         # Collect actual data from all sources
         usgs_data = await data_collector.collect_usgs_data()
-        noaa_data = await data_collector.collect_noaa_flood_data()
+        imd_data = await data_collector.collect_imd_flood_data()
         weather_data = await data_collector.collect_weather_data()
 
         # Create actual watershed data from collected data
         actual_data = {
             "usgs": usgs_data,
-            "noaa": noaa_data,
+            "noaa": imd_data,
             "weather": weather_data,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -136,7 +136,7 @@ async def generate_data_insights() -> Dict[str, Any]:
             "agent": "Data Collector",
             "data_collected": {
                 "usgs_sites": len(usgs_data),
-                "noaa_alerts": len(noaa_data.get("alerts", [])),
+                "noaa_alerts": len(imd_data.get("alerts", [])),
                 "weather_locations": len(weather_data)
             },
             "insights": [
@@ -186,12 +186,12 @@ async def analyze_flood_risk(
         # If no data provided, collect actual data
         if not watershed_data:
             usgs_data = await data_collector.collect_usgs_data()
-            noaa_data = await data_collector.collect_noaa_flood_data()
+            imd_data = await data_collector.collect_imd_flood_data()
             weather_data = await data_collector.collect_weather_data()
 
             watershed_data = {
                 "usgs": usgs_data,
-                "noaa": noaa_data,
+                "noaa": imd_data,
                 "weather": weather_data,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
@@ -436,12 +436,12 @@ async def assess_emergency_response() -> Dict[str, Any]:
 
         # Collect actual data for emergency assessment
         usgs_data = await data_collector.collect_usgs_data()
-        noaa_data = await data_collector.collect_noaa_flood_data()
+        imd_data = await data_collector.collect_imd_flood_data()
         weather_data = await data_collector.collect_weather_data()
 
         actual_data = {
             "usgs": usgs_data,
-            "noaa": noaa_data,
+            "noaa": imd_data,
             "weather": weather_data,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -580,12 +580,12 @@ async def generate_flood_forecast(
         # If no data provided, collect actual data
         if not watershed_data:
             usgs_data = await data_collector.collect_usgs_data()
-            noaa_data = await data_collector.collect_noaa_flood_data()
+            imd_data = await data_collector.collect_imd_flood_data()
             weather_data = await data_collector.collect_weather_data()
 
             watershed_data = {
                 "usgs": usgs_data,
-                "noaa": noaa_data,
+                "noaa": imd_data,
                 "weather": weather_data,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
@@ -614,12 +614,12 @@ async def analyze_prediction_accuracy() -> Dict[str, Any]:
 
         # Collect actual data for analysis
         usgs_data = await data_collector.collect_usgs_data()
-        noaa_data = await data_collector.collect_noaa_flood_data()
+        imd_data = await data_collector.collect_imd_flood_data()
         weather_data = await data_collector.collect_weather_data()
 
         actual_data = {
             "usgs": usgs_data,
-            "noaa": noaa_data,
+            "noaa": imd_data,
             "weather": weather_data,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -672,12 +672,12 @@ async def predict_critical_conditions(
 
         # Collect actual data for predictions
         usgs_data = await data_collector.collect_usgs_data()
-        noaa_data = await data_collector.collect_noaa_flood_data()
+        imd_data = await data_collector.collect_imd_flood_data()
         weather_data = await data_collector.collect_weather_data()
 
         actual_data = {
             "usgs": usgs_data,
-            "noaa": noaa_data,
+            "noaa": imd_data,
             "weather": weather_data,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -827,7 +827,7 @@ def h2ogpte_get_status() -> Dict[str, Any]:
 
 @mcp.tool()
 async def comprehensive_flood_analysis(
-    location: str = "Texas Region"
+    location: str = "India"
 ) -> Dict[str, Any]:
     """Run comprehensive flood analysis using all agents with actual data.
 
@@ -839,12 +839,12 @@ async def comprehensive_flood_analysis(
 
         # Collect actual data once to avoid redundant API calls
         usgs_data = await data_collector.collect_usgs_data()
-        noaa_data = await data_collector.collect_noaa_flood_data()
+        imd_data = await data_collector.collect_imd_flood_data()
         weather_data = await data_collector.collect_weather_data()
 
         actual_data = {
             "usgs": usgs_data,
-            "noaa": noaa_data,
+            "noaa": imd_data,
             "weather": weather_data,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -886,7 +886,7 @@ async def comprehensive_flood_analysis(
                 "agent": "Data Collector",
                 "data_sources": {
                     "usgs_sites": len(usgs_data),
-                    "noaa_alerts": len(noaa_data.get("alerts", [])),
+                    "noaa_alerts": len(imd_data.get("alerts", [])),
                     "weather_locations": len(weather_data)
                 },
                 "insights": [{"title": i.title, "value": i.value, "trend": i.trend, "urgency": i.urgency} for i in data_insights],
@@ -937,12 +937,12 @@ def get_agent_capabilities() -> Dict[str, Any]:
                 "description": "Collects real-time data from USGS, NOAA, and weather APIs",
                 "capabilities": [
                     "USGS water data collection",
-                    "NOAA flood alerts",
+                    "IMD/CWC flood alerts",
                     "Weather data from Open-Meteo",
                     "Data quality monitoring",
                     "API connectivity status"
                 ],
-                "tools": ["collect_usgs_data", "collect_noaa_flood_data", "collect_weather_data", "generate_data_insights"]
+                "tools": ["collect_usgs_data", "collect_imd_flood_data", "collect_weather_data", "generate_data_insights"]
             },
             "risk_analyzer": {
                 "name": "Risk Analyzer", 

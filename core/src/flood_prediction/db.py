@@ -56,7 +56,7 @@ create table if not exists watersheds (
     flood_stage_cfs real default 0,
     trend text default 'stable' check(trend in ('rising', 'falling', 'stable')),
     trend_rate_cfs_per_hour real default 0,
-    usgs_site_code text,  -- USGS monitoring site code
+    river_site_code text,  -- CWC/IMD monitoring site code
     data_source text default 'sample' check(data_source in ('sample', 'usgs', 'noaa', 'openmeteo')),
     data_quality text default 'unknown' check(data_quality in ('approved', 'provisional', 'estimated', 'unknown')),
     last_api_update timestamp null,  -- Last time real API data was fetched
@@ -76,7 +76,7 @@ create table if not exists alerts (
     expires_time timestamp null,
     affected_counties text default '',
     is_active boolean default true,
-    data_source text default 'sample' check(data_source in ('sample', 'noaa', 'nws', 'manual')),
+    data_source text default 'sample' check(data_source in ('sample', 'imd', 'cwc', 'manual')),
     created_at timestamp default current_timestamp,
     foreign key (watershed_id) references watersheds(id)
 );
@@ -120,7 +120,7 @@ create table if not exists items (
 -- Indexes
 create index if not exists idx_watersheds_risk_level on watersheds(current_risk_level);
 create index if not exists idx_watersheds_last_updated on watersheds(last_updated);
-create index if not exists idx_watersheds_usgs_site on watersheds(usgs_site_code);
+create index if not exists idx_watersheds_river_site on watersheds(river_site_code);
 create index if not exists idx_watersheds_data_source on watersheds(data_source);
 create index if not exists idx_watersheds_api_update on watersheds(last_api_update);
 create index if not exists idx_watersheds_region_code on watersheds(region_code);
@@ -357,7 +357,7 @@ def get_watersheds(path: str, region_code: Optional[str] = None) -> List[Dict[st
             """SELECT id, name, region, region_code, location_lat, location_lng, basin_size_sqmi,
                       current_streamflow_cfs, current_risk_level, risk_score,
                       flood_stage_cfs, trend, trend_rate_cfs_per_hour,
-                      usgs_site_code, data_source, data_quality, last_api_update, last_updated
+                      river_site_code, data_source, data_quality, last_api_update, last_updated
                FROM watersheds WHERE region_code = ? ORDER BY risk_score DESC;""",
             (region_code,)
         )
@@ -367,7 +367,7 @@ def get_watersheds(path: str, region_code: Optional[str] = None) -> List[Dict[st
             """SELECT id, name, region, region_code, location_lat, location_lng, basin_size_sqmi,
                       current_streamflow_cfs, current_risk_level, risk_score,
                       flood_stage_cfs, trend, trend_rate_cfs_per_hour,
-                      usgs_site_code, data_source, data_quality, last_api_update, last_updated
+                      river_site_code, data_source, data_quality, last_api_update, last_updated
                FROM watersheds ORDER BY risk_score DESC;"""
         )
     return [
@@ -385,7 +385,7 @@ def get_watersheds(path: str, region_code: Optional[str] = None) -> List[Dict[st
             'flood_stage_cfs': row[10],
             'trend': row[11],
             'trend_rate_cfs_per_hour': row[12],
-            'usgs_site_code': row[13],
+            'river_site_code': row[13],
             'data_source': row[14],
             'data_quality': row[15],
             'last_api_update': row[16],
@@ -401,7 +401,7 @@ def get_watershed_context(path: str, watershed_id: int) -> str:
         """SELECT id, name, location_lat, location_lng, basin_size_sqmi,
                   current_streamflow_cfs, current_risk_level, risk_score,
                   flood_stage_cfs, trend, trend_rate_cfs_per_hour,
-                  usgs_site_code, data_source, data_quality, last_api_update, last_updated
+                  river_site_code, data_source, data_quality, last_api_update, last_updated
            FROM watersheds WHERE id = ?;""",
         (watershed_id,)
     )
@@ -422,7 +422,7 @@ def get_watershed_context(path: str, watershed_id: int) -> str:
         'flood_stage_cfs': row[8],
         'trend': row[9],
         'trend_rate_cfs_per_hour': row[10],
-        'usgs_site_code': row[11],
+        'river_site_code': row[11],
         'data_source': row[12],
         'data_quality': row[13],
         'last_api_update': row[14],
@@ -439,7 +439,7 @@ Current Streamflow: {watershed['current_streamflow_cfs']:,.1f} CFS
 Flood Stage: {watershed['flood_stage_cfs']:,.1f} CFS
 Risk Level: {watershed['current_risk_level']} (Score: {watershed['risk_score']}/10)
 Trend: {watershed['trend']} ({watershed['trend_rate_cfs_per_hour']:+.1f} CFS/hour)
-USGS Site Code: {watershed['usgs_site_code'] or 'N/A'}
+CWC Site Code: {watershed['river_site_code'] or 'N/A'}
 Data Source: {watershed['data_source']}
 Data Quality: {watershed['data_quality']}
 Last Updated: {watershed['last_updated']}
@@ -450,7 +450,7 @@ Last Updated: {watershed['last_updated']}
 def get_active_alerts(path: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Get active alerts with watershed information, filtering out expired alerts.
 
-    Prioritizes real alerts (NOAA, NWS) over sample alerts.
+    Prioritizes real alerts (IMD, CWC) over sample alerts.
     """
     rows = execute_query(
         path,
@@ -462,8 +462,8 @@ def get_active_alerts(path: str, limit: int = 10) -> List[Dict[str, Any]]:
              AND (a.expires_time IS NULL OR datetime(substr(a.expires_time, 1, 19)) > datetime('now'))
            ORDER BY
              CASE a.data_source
-               WHEN 'noaa' THEN 1
-               WHEN 'nws' THEN 2
+               WHEN 'imd' THEN 1
+               WHEN 'cwc' THEN 2
                WHEN 'manual' THEN 3
                WHEN 'sample' THEN 4
                ELSE 5
@@ -511,7 +511,7 @@ def get_risk_trend_data(path: str, hours: int = 24) -> List[Dict[str, Any]]:
 def insert_watershed(path: str, name: str, lat: float = None, lng: float = None,
                     basin_size: float = 0, streamflow: float = 0, risk_level: str = 'Low',
                     risk_score: float = 0, flood_stage: float = 0, trend: str = 'stable',
-                    trend_rate: float = 0, usgs_site_code: str = None,
+                    trend_rate: float = 0, river_site_code: str = None,
                     data_source: str = 'sample', data_quality: str = 'unknown',
                     region: str = 'Ganga Basin', region_code: str = 'IN-GANGA') -> int:
     """Insert a new watershed."""
@@ -520,10 +520,10 @@ def insert_watershed(path: str, name: str, lat: float = None, lng: float = None,
         """INSERT INTO watersheds (name, region, region_code, location_lat, location_lng, basin_size_sqmi,
                                  current_streamflow_cfs, current_risk_level, risk_score,
                                  flood_stage_cfs, trend, trend_rate_cfs_per_hour,
-                                 usgs_site_code, data_source, data_quality)
+                                 river_site_code, data_source, data_quality)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
         (name, region, region_code, lat, lng, basin_size, streamflow, risk_level, risk_score, flood_stage,
-         trend, trend_rate, usgs_site_code, data_source, data_quality)
+         trend, trend_rate, river_site_code, data_source, data_quality)
     )
 
 def update_watershed_data(path: str, watershed_id: int, streamflow: float, 
@@ -641,24 +641,24 @@ def insert_alert_with_counties(path: str, alert_type: str, watershed_id: int, me
         (alert_type, watershed_id, message, severity, expires_time.isoformat(), counties)
     )
 
-def insert_noaa_alert(path: str, alert_type: str, watershed_id: int, message: str,
+def insert_imd_alert(path: str, alert_type: str, watershed_id: int, message: str,
                      severity: str, issued_time: str, expires_time: str,
-                     counties: str = "", noaa_id: str = None) -> Optional[int]:
+                     counties: str = "", imd_id: str = None) -> Optional[int]:
     """
-    Insert a NOAA weather alert with full control over timestamps.
+    Insert an IMD/CWC weather alert with full control over timestamps.
     Returns alert_id if successful, None if duplicate.
     """
     from datetime import datetime
 
     try:
-        # Check for duplicate by NOAA ID or similar alert within 1 hour
-        if noaa_id:
+        # Check for duplicate by IMD ID or similar alert within 1 hour
+        if imd_id:
             existing = execute_query(
                 path,
                 """SELECT id FROM alerts
                    WHERE message LIKE ? AND datetime(issued_time) > datetime(?, '-1 hour')
                    LIMIT 1;""",
-                (f"%{noaa_id[:50]}%", issued_time)
+                (f"%{imd_id[:50]}%", issued_time)
             )
             if existing:
                 return None  # Skip duplicate
@@ -671,7 +671,7 @@ def insert_noaa_alert(path: str, alert_type: str, watershed_id: int, message: st
             (alert_type, watershed_id, message, severity, issued_time, expires_time, counties)
         )
     except Exception as e:
-        print(f"Error inserting NOAA alert: {e}")
+        print(f"Error inserting IMD alert: {e}")
         return None
 
 # =============================================================================

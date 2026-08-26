@@ -30,7 +30,7 @@ from .settings import configure_logging, initialize_app
 from . import db
 from .api import llm_call_stream, get_available_llm_models, get_provider_info, get_all_providers_info
 from .evaluator import evaluator, EvaluationResult
-from .data_sources import fetch_and_update_usgs_data, fetch_and_store_noaa_alerts
+from .data_sources import fetch_and_update_usgs_data, fetch_and_store_imd_alerts
 from .agents import AgentManager
 from .agents.nat_base import FloodPredictionRunner
 
@@ -386,29 +386,29 @@ def update_flood_data_task(user_id: str = "system", site_codes: Optional[List[st
     """Background task to update flood prediction data from USGS API"""
     ctx = JobContext()
     try:
-        ctx.status = "Starting USGS data update..."
+        ctx.status = "Starting River discharge data update..."
         
         # Use the global database path
         db_path = str(_db_path)
         
-        ctx.status = "Fetching data from USGS API..."
+        ctx.status = "Fetching river discharge data from Open-Meteo API..."
         results = fetch_and_update_usgs_data(db_path, site_codes)
         
         ctx.checkpoint()  # Check for abort
         
         if results["success"]:
             ctx.status = f"Successfully updated {results['updated_count']} watersheds"
-            log.info("USGS data update job completed", **results)
+            log.info("River discharge data update job completed", **results)
         else:
             ctx.status = f"Data update failed: {results['message']}"
-            log.error("USGS data update job failed", **results)
+            log.error("River discharge data update job failed", **results)
         
         return results
         
     except Exception as e:
-        error_msg = f"USGS data update task failed: {str(e)}"
+        error_msg = f"River discharge data update task failed: {str(e)}"
         ctx.status = error_msg
-        log.error("USGS data update task error", error=str(e))
+        log.error("River discharge data update task error", error=str(e))
         raise Exception(error_msg)
 
 
@@ -496,8 +496,8 @@ class Watershed(BaseModel):
     """Watershed information"""
     id: int
     name: str
-    region: Optional[str] = "Texas"
-    region_code: Optional[str] = "TX"
+    region: Optional[str] = "Ganga Basin"
+    region_code: Optional[str] = "IN-GANGA"
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None
     basin_size_sqmi: Optional[float] = None
@@ -828,7 +828,7 @@ class NATChatMessage(BaseModel):
     """NAT agent chat message model"""
     message: str
     agent_type: str = "risk_analyzer"  # data_collector, risk_analyzer, emergency_responder, predictor, all
-    location: Optional[str] = "Texas Region"
+    location: Optional[str] = "India"
     forecast_hours: Optional[int] = 24
     scenario: Optional[str] = "routine_check"
     custom_prompt: Optional[str] = None
@@ -901,6 +901,60 @@ class Region(BaseModel):
     center_lng: float
     zoom: int
     watershed_count: int
+
+# =============================================================================
+# India Real-Time Context Builder (for chatbot)
+# =============================================================================
+
+def _build_india_context(message: str, db_path: str) -> str:
+    """Build a rich real-time India flood context for the chatbot."""
+    try:
+        live_watersheds = db.get_watersheds(db_path)
+        high_risk = [w for w in live_watersheds if w.get('risk_score', 0) >= 6]
+        critical_risk = [w for w in live_watersheds if w.get('risk_score', 0) >= 8]
+        alerts = db.get_active_alerts(db_path, limit=10)
+        summary = db.get_dashboard_summary(db_path)
+
+        high_risk_lines = "\n".join([
+            f"• {w['name']} — Risk {w['risk_score']:.1f}/10, Flow {w['current_streamflow_cfs']:,.0f} CFS, Trend: {w.get('trend','stable')}"
+            for w in high_risk[:8]
+        ]) or "• No high risk areas currently"
+
+        alert_lines = "\n".join([
+            f"• {a.get('alert_type','Alert')} at {a.get('watershed','Unknown')} — {a.get('severity','?')} severity"
+            for a in alerts[:5]
+        ]) or "• No active alerts"
+
+        india_context = f"""You are an expert India Flood Intelligence AI with access to LIVE data.
+
+=== REAL-TIME INDIA FLOOD STATUS ===
+Monitored river sites: {summary.get('total_watersheds', 0)}
+Active flood alerts: {summary.get('active_alerts', 0)}
+High risk sites (score ≥6): {len(high_risk)}
+Critical sites (score ≥8): {len(critical_risk)}
+
+HIGH RISK AREAS RIGHT NOW:
+{high_risk_lines}
+
+ACTIVE ALERTS:
+{alert_lines}
+
+DATA: Open-Meteo GloFAS API (updates every hour) | 45+ India river sites
+IMD THRESHOLDS: Heavy Rain ≥64.5mm/day | Very Heavy ≥115.5mm/day | Extreme ≥204.5mm/day
+BASINS: Ganga, Brahmaputra, Mahanadi, Godavari, Krishna, Narmada, Kaveri, Indus
+EMERGENCY: NDMA 1078 | IMD: mausam.imd.gov.in | CWC: cwc.gov.in
+
+Answer using real-time data above. Be specific and fast. For area-specific risk, reference the high risk list.
+
+User Question: {message}"""
+        return india_context
+    except Exception:
+        return f"""You are an India Flood Intelligence AI assistant.
+Answer flood, weather and river risk questions for India using IMD/CWC/Open-Meteo data.
+NDMA emergency helpline: 1078.
+
+User Question: {message}"""
+
 
 # =============================================================================
 # Dashboard API Endpoints
@@ -1045,7 +1099,7 @@ async def get_alerts(limit: int = 100, response: Response = None):
 
 @app.post(_api("alerts/refresh"))
 async def refresh_alerts(user_id: UserID):
-    """Manually trigger NOAA alerts refresh from real-time API"""
+    """Manually trigger IMD/CWC alerts refresh from real-time API"""
     try:
         if not settings.enable_real_time_data:
             raise HTTPException(status_code=400, detail="Real-time data integration is disabled")
@@ -1053,16 +1107,16 @@ async def refresh_alerts(user_id: UserID):
         # Clear expired alerts first
         db.clear_expired_alerts(str(_db_path))
 
-        # Fetch and store NOAA alerts
-        noaa_results = fetch_and_store_noaa_alerts(str(_db_path))
+        # Fetch and store IMD/CWC alerts
+        imd_results = fetch_and_store_imd_alerts(str(_db_path))
 
         return {
-            "status": "success" if noaa_results["success"] else "partial",
-            "message": noaa_results["message"],
-            "alerts_fetched": noaa_results.get("alerts_fetched", 0),
-            "alerts_stored": noaa_results.get("alerts_stored", 0),
-            "alerts_skipped": noaa_results.get("alerts_skipped", 0),
-            "timestamp": noaa_results.get("timestamp")
+            "status": "success" if imd_results["success"] else "partial",
+            "message": imd_results["message"],
+            "alerts_fetched": imd_results.get("alerts_fetched", 0),
+            "alerts_stored": imd_results.get("alerts_stored", 0),
+            "alerts_skipped": imd_results.get("alerts_skipped", 0),
+            "timestamp": imd_results.get("timestamp")
         }
 
     except Exception as e:
@@ -1097,17 +1151,17 @@ async def populate_sample_data():
         raise HTTPException(status_code=500, detail="Failed to populate sample data")
 
 
-@app.post(_api("dashboard/refresh-usgs-data"))
+@app.post(_api("dashboard/refresh-river-data"))
 async def refresh_usgs_data(user_id: UserID):
-    """Manually trigger USGS data refresh"""
+    """Manually trigger River Discharge Data Refresh"""
     try:
         if not settings.enable_real_time_data:
             raise HTTPException(status_code=400, detail="Real-time data integration is disabled")
         
-        # Create background job for USGS data update
+        # Create background job for River discharge data update
         job_id = _make_job_id(user_id, uid())
         
-        meta = {"name": "USGS Data Refresh"}
+        meta = {"name": "River Discharge Data Refresh"}
         
         job = _job_queue.enqueue(
             update_flood_data_task,
@@ -1125,13 +1179,13 @@ async def refresh_usgs_data(user_id: UserID):
         _, simple_job_id = _parse_job_id(job_id)
         return {
             "status": "success", 
-            "message": "USGS data refresh started",
+            "message": "River Discharge Data Refresh started",
             "job_id": simple_job_id
         }
         
     except Exception as e:
-        log.error(f"Failed to start USGS data refresh: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to start USGS data refresh")
+        log.error(f"Failed to start River Discharge Data Refresh: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to start River Discharge Data Refresh")
 
 
 @app.post(_api("dashboard/update-single-watershed/{watershed_id}"))
@@ -1148,13 +1202,13 @@ async def update_single_watershed_data(watershed_id: int, user_id: UserID):
         if not target_watershed:
             raise HTTPException(status_code=404, detail="Watershed not found")
         
-        # Extract USGS site code from watershed name if available
+        # Extract river site code from watershed name if available
         import re
         site_code_match = re.search(r'USGS (\d{8})', target_watershed['name'])
         if not site_code_match:
             raise HTTPException(
                 status_code=400, 
-                detail="No USGS site code found for this watershed"
+                detail="No river site code found for this watershed"
             )
         
         site_code = site_code_match.group(1)
@@ -1491,7 +1545,7 @@ async def stream_chat_with_ai(user_id: UserID, request: ChatMessage):
                             asyncio.set_event_loop(loop)
                         
                         final_response = loop.run_until_complete(llm_call_stream(
-                            request.message, 
+                            _build_india_context(request.message, str(_db_path)),
                             sync_callback, 
                             request.model, 
                             request.use_agent
@@ -1879,20 +1933,12 @@ async def enhanced_chat_with_ai(user_id: UserID, request: EnhancedChatMessage):
         if request.watershed_id:
             context["watershed_id"] = request.watershed_id
         
-        # Build enhanced prompt with context
+        # Build enhanced prompt with India real-time context
         if request.watershed_id:
             watershed_context = db.get_watershed_context(str(_db_path), request.watershed_id)
-            enhanced_prompt = f"""
-Context: You are an AI assistant helping with flood prediction and water management.
-
-Watershed Information: {watershed_context}
-
-User Question: {request.message}
-
-Please provide a helpful and accurate response based on the available data and context.
-"""
+            enhanced_prompt = _build_india_context(request.message, str(_db_path)) + f"\n\nSpecific Watershed: {watershed_context}"
         else:
-            enhanced_prompt = request.message
+            enhanced_prompt = _build_india_context(request.message, str(_db_path))
         
         # Call the AI provider
         response = await llm_call(
@@ -1948,20 +1994,50 @@ async def enhanced_stream_chat_with_ai(user_id: UserID, request: EnhancedChatMes
                 
                 def run_llm_sync():
                     try:
-                        # Build enhanced prompt with context
+                        # Build enhanced prompt with India real-time context
+                        # Get live watershed data for context
+                        try:
+                            live_watersheds = db.get_watersheds(str(_db_path))
+                            high_risk = [w for w in live_watersheds if w.get('risk_score', 0) >= 6]
+                            critical_risk = [w for w in live_watersheds if w.get('risk_score', 0) >= 8]
+                            alerts = db.get_active_alerts(str(_db_path), limit=10)
+                            summary = db.get_dashboard_summary(str(_db_path))
+
+                            india_context = f"""You are an expert India Flood Intelligence AI assistant with access to REAL-TIME data.
+
+=== LIVE INDIA FLOOD DATA (RIGHT NOW) ===
+Total monitored river sites: {summary.get('total_watersheds', 0)}
+Active flood alerts: {summary.get('active_alerts', 0)}
+High risk sites (score ≥6): {len(high_risk)}
+Critical risk sites (score ≥8): {len(critical_risk)}
+
+HIGH RISK AREAS RIGHT NOW:
+{chr(10).join([f"• {w['name']} — Risk {w['risk_score']:.1f}/10, Flow {w['current_streamflow_cfs']:,.0f} CFS, Trend: {w.get('trend','stable')}" for w in high_risk[:8]]) or '• No high risk areas currently'}
+
+ACTIVE ALERTS:
+{chr(10).join([f"• {a.get('alert_type','Alert')} at {a.get('watershed','Unknown')} — {a.get('severity','?')} severity" for a in alerts[:5]]) or '• No active alerts'}
+
+DATA SOURCE: Open-Meteo Flood API (GloFAS) — updated every hour
+IMD THRESHOLDS: Heavy Rain ≥64.5mm/day, Very Heavy ≥115.5mm/day, Extreme ≥204.5mm/day
+EMERGENCY: NDMA helpline 1078 | IMD: mausam.imd.gov.in | CWC: cwc.gov.in
+
+=== INDIA RIVER BASINS MONITORED ===
+Ganga (UP, Bihar, WB), Brahmaputra (Assam, AR), Mahanadi (Odisha, CG),
+Godavari (MH, TG, AP), Krishna (KA, AP), Narmada (MP, GJ), Kaveri (KA, TN), Indus (PB, HP, J&K)
+
+Answer the user's question using this real-time data. Be specific, fast, and actionable.
+If asked about risk in a specific area, check the high risk areas list above.
+Always include NDMA 1078 for emergencies.
+"""
+                        except Exception:
+                            india_context = """You are an India Flood Intelligence AI. Answer flood, weather and river risk questions for India.
+Data source: Open-Meteo Flood API (GloFAS). Emergency: NDMA 1078."""
+
                         if request.watershed_id:
                             watershed_context = db.get_watershed_context(str(_db_path), request.watershed_id)
-                            enhanced_prompt = f"""
-Context: You are an AI assistant helping with flood prediction and water management.
-
-Watershed Information: {watershed_context}
-
-User Question: {request.message}
-
-Please provide a helpful and accurate response based on the available data and context.
-"""
+                            enhanced_prompt = f"{india_context}\n\nSpecific Watershed: {watershed_context}\n\nUser Question: {request.message}"
                         else:
-                            enhanced_prompt = request.message
+                            enhanced_prompt = f"{india_context}\n\nUser Question: {request.message}"
                         
                         # Create a new event loop for this thread
                         import asyncio
@@ -2415,6 +2491,168 @@ async def health_check():
 async def serve_index():
     """Serve the main index.html file"""
     return FileResponse(server_dir / "index.html")
+
+
+# =============================================================================
+# PDF Report & SMS API Endpoints
+# =============================================================================
+
+class SMSTestRequest(BaseModel):
+    """Request model for sending a test SMS"""
+    watershed_name: str = "Test Site"
+    risk_level: str = "HIGH"
+    risk_score: float = 7.5
+    message: str = "This is a test alert from India Flood Intelligence System."
+
+
+@app.get(_api("reports"))
+async def list_reports():
+    """List all generated PDF flood reports"""
+    try:
+        from .notifications import list_reports as _list_reports
+        reports = _list_reports()
+        return {
+            "reports": reports,
+            "count": len(reports),
+            "reports_dir": settings.reports_dir,
+        }
+    except Exception as e:
+        log.error(f"Failed to list reports: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to list reports")
+
+
+@app.post(_api("reports/generate"))
+async def generate_report(region: Optional[str] = None):
+    """
+    Generate a PDF flood risk report on demand.
+    Optionally filter by region code (e.g. IN-GANGA, IN-BRAHMAPUTRA).
+    Returns report metadata including filename and download URL.
+    """
+    try:
+        from .notifications import generate_flood_report
+
+        watersheds = db.get_watersheds(str(_db_path), region_code=region)
+        if not watersheds:
+            raise HTTPException(status_code=404, detail="No watershed data found to generate report")
+
+        alerts_raw = db.get_active_alerts(str(_db_path), limit=20)
+
+        title = "India Flood Intelligence Report"
+        if region:
+            title = f"India Flood Intelligence Report — {region}"
+
+        pdf_path = generate_flood_report(
+            watersheds=[dict(w) for w in watersheds],
+            alerts=[dict(a) for a in alerts_raw],
+            report_title=title,
+        )
+
+        if not pdf_path:
+            raise HTTPException(status_code=500, detail="PDF generation failed — check server logs")
+
+        return {
+            "status": "success",
+            "filename": pdf_path.name,
+            "download_url": f"{settings.base_url}api/reports/download/{pdf_path.name}",
+            "size_kb": round(pdf_path.stat().st_size / 1024, 1),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "watershed_count": len(watersheds),
+            "alert_count": len(alerts_raw),
+            "region": region or "All India",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error(f"Failed to generate report: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate report: {str(e)}")
+
+
+@app.get(_api("reports/download/{filename}"))
+async def download_report(filename: str):
+    """Download a generated PDF report by filename."""
+    try:
+        # Security: only allow safe filenames — no path traversal
+        if "/" in filename or "\\" in filename or ".." in filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+        if not filename.endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Only PDF files are downloadable")
+
+        pdf_path = Path(settings.reports_dir) / filename
+        if not pdf_path.exists():
+            raise HTTPException(status_code=404, detail="Report file not found")
+
+        return FileResponse(
+            path=str(pdf_path),
+            media_type="application/pdf",
+            filename=filename,
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error(f"Failed to download report {filename}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to download report")
+
+
+@app.post(_api("reports/send-sms"))
+async def send_test_sms(request: SMSTestRequest):
+    """
+    Send a test SMS alert to the configured phone numbers.
+    Useful for verifying Twilio credentials are working.
+    """
+    try:
+        from .notifications import send_sms_alert, _sms_last_sent
+
+        # Temporarily clear cooldown so test always fires
+        _sms_last_sent.pop(request.watershed_name, None)
+
+        success = send_sms_alert(
+            watershed_name=request.watershed_name,
+            risk_level=request.risk_level,
+            risk_score=request.risk_score,
+            message=request.message,
+        )
+
+        if success:
+            return {
+                "status": "success",
+                "message": f"SMS sent to {len(settings.sms_alert_numbers)} number(s)",
+                "numbers": settings.sms_alert_numbers,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        else:
+            return {
+                "status": "failed",
+                "message": "SMS not sent — check Twilio credentials in .env or risk level threshold",
+                "sms_enabled": settings.sms_alerts_enabled,
+                "twilio_configured": bool(settings.twilio_account_sid and settings.twilio_auth_token),
+            }
+
+    except Exception as e:
+        log.error(f"Failed to send test SMS: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to send SMS: {str(e)}")
+
+
+@app.get(_api("reports/sms-config"))
+async def get_sms_config():
+    """Get current SMS alert configuration (no secrets exposed)."""
+    return {
+        "sms_alerts_enabled": settings.sms_alerts_enabled,
+        "alert_numbers": settings.sms_alert_numbers,
+        "alert_min_severity": settings.sms_alert_min_severity,
+        "cooldown_minutes": settings.sms_cooldown_minutes,
+        "twilio_configured": bool(settings.twilio_account_sid and settings.twilio_auth_token),
+        "from_number_set": bool(settings.twilio_from_number),
+        "pdf_reports_enabled": settings.pdf_reports_enabled,
+        "auto_pdf_on_critical": settings.auto_pdf_on_critical,
+    }
+
+
+# =============================================================================
+# Static file serving (keep LAST — catches all non-API routes)
+# =============================================================================
 
 @app.get("/{path:path}")
 async def serve_static(path: str):

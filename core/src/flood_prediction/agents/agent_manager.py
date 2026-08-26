@@ -238,7 +238,7 @@ class AgentManager:
             if isinstance(agent, DataCollectorAgent):
                 details['data_sources'] = {
                     'last_usgs_update': agent.last_usgs_update.isoformat() if agent.last_usgs_update else None,
-                    'last_noaa_update': agent.last_noaa_update.isoformat() if agent.last_noaa_update else None,
+                    'last_imd_update': agent.last_imd_update.isoformat() if agent.last_imd_update else None,
                     'last_weather_update': agent.last_weather_update.isoformat() if agent.last_weather_update else None,
                     'data_quality_score': agent.data_quality_score
                 }
@@ -318,7 +318,7 @@ class AgentManager:
 
             # Collect data from all sources (this updates timestamps)
             usgs_data = await data_collector.collect_usgs_data()
-            noaa_data = await data_collector.collect_noaa_flood_data()
+            imd_data = await data_collector.collect_imd_flood_data()
             weather_data = await data_collector.collect_weather_data()
 
             # Store USGS data in database (synchronous operation)
@@ -339,7 +339,7 @@ class AgentManager:
 
             return {
                 'usgs_data': usgs_data,
-                'noaa_data': noaa_data,
+                'imd_data': imd_data,
                 'weather_data': weather_data,
                 'collected_at': datetime.now(timezone.utc).isoformat(),
                 'db_updated': db_update_result.get('updated_count', 0) if db_update_result else 0

@@ -244,15 +244,15 @@ export default function Page() {
         fetchDashboardData()
     }
 
-    const handleUsgsRefresh = async () => {
+    const handleRiverRefresh = async () => {
         try {
             setRefreshingData(true)
-            setRefreshStatus('Starting USGS data refresh...')
+            setRefreshStatus('Starting River data refresh...')
             
-            const response = await dashboardApi.refreshUsgsData()
+            const response = await dashboardApi.refreshRiverData()
             
             if (response.status === 'success') {
-                setRefreshStatus('USGS data refresh started')
+                setRefreshStatus('River data refresh started')
                 
                 // Monitor the job progress
                 if (response.job_id) {
@@ -266,7 +266,7 @@ export default function Page() {
                         if (job.state === 'started') {
                             if (!job.status) setRefreshStatus('Fetching data from Open-Meteo API...')
                         } else if (job.state === 'finished') {
-                            setRefreshStatus('USGS data refresh completed')
+                            setRefreshStatus('River data refresh completed')
                             setRefreshingData(false) // Reset refreshing state when job completes
                             // Immediately refresh dashboard data when job completes
                             fetchDashboardData()
@@ -295,8 +295,8 @@ export default function Page() {
 
     const handleBannerAction = (bannerId: string) => {
         if (bannerId === 'demo-mode') {
-            // Trigger USGS data refresh when clicking "Update Now" in demo mode banner
-            handleUsgsRefresh()
+            // Trigger River data refresh when clicking "Update Now" in demo mode banner
+            handleRiverRefresh()
             // Dismiss the banner after clicking
             dismissBanner(bannerId)
         }
@@ -533,9 +533,9 @@ export default function Page() {
                                     <span className="text-sm font-semibold">Emergency: NDMA 1078</span>
                                 </div>
                             </div>
-                            {/* USGS Data Refresh Button */}
+                            {/* River data Refresh Button */}
                             <button 
-                                onClick={handleUsgsRefresh}
+                                onClick={handleRiverRefresh}
                                 disabled={refreshingData}
                                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Refresh real-time data from Open-Meteo"
@@ -723,7 +723,7 @@ export default function Page() {
                                                             <DataSourceBadge 
                                                                 source={watershed.data_source}
                                                                 quality={watershed.data_quality}
-                                                                siteCode={watershed.usgs_site_code}
+                                                                siteCode={watershed.river_site_code}
                                                             />
                                                         </div>
                                                         <div className="mt-1 space-y-1">

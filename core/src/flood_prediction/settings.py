@@ -1,3 +1,4 @@
+
 import logging
 import os
 from pathlib import Path
@@ -165,13 +166,32 @@ class Settings(BaseSettings):
 
     # External API settings for agents
     usgs_api_enabled: bool = True
-    noaa_api_enabled: bool = True
+    imd_api_enabled: bool = True
     openmeteo_api_enabled: bool = True
 
     # Alert and notification settings
     emergency_alerts_enabled: bool = True
-    alert_channels: list = ["NDMA", "IMD", "Cell", "Doordarshan", "AIR", "SACHET"]
+    alert_channels: list = ["NDMA", "IMD", "CWC", "SACHET", "Cell", "Doordarshan", "AIR", "SACHET"]
     max_alerts_per_hour: int = 10
+
+    # =============================================================================
+    # Twilio SMS Alert Settings
+    # =============================================================================
+    twilio_account_sid: Optional[str] = None
+    twilio_auth_token: Optional[str] = None
+    twilio_from_number: str = ""          # Twilio sender number e.g. +1XXXXXXXXXX
+    sms_alert_numbers: list = ["+917008553530", "+919827963345"]
+    sms_alerts_enabled: bool = True
+    # Risk levels that trigger SMS: HIGH and CRITICAL
+    sms_alert_min_severity: str = "HIGH"  # HIGH or CRITICAL
+    sms_cooldown_minutes: int = 30        # Min gap between SMS for same watershed
+
+    # =============================================================================
+    # PDF Report Settings
+    # =============================================================================
+    reports_dir: str = ".data/reports"
+    pdf_reports_enabled: bool = True
+    auto_pdf_on_critical: bool = True     # Auto-generate PDF when CRITICAL alert fires
 
     # =============================================================================
     # Flood Prediction Data Sources
@@ -225,6 +245,8 @@ server_dir = (
     Path(settings.web_dir) if settings.web_dir else Path(__file__).parent / "www"
 )
 data_dir = Path(settings.app_data_dir)
+reports_dir = Path(settings.reports_dir)
+reports_dir.mkdir(parents=True, exist_ok=True)
 
 
 def get_user_dir(user_id: str) -> Path:

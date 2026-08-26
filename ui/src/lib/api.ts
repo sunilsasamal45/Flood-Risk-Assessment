@@ -122,7 +122,7 @@ export interface Watershed {
     flood_stage_cfs?: number;
     trend?: string;
     trend_rate_cfs_per_hour?: number;
-    usgs_site_code?: string;
+    river_site_code?: string;
     data_source?: string;
     data_quality?: string;
     last_api_update?: string;
@@ -201,7 +201,7 @@ export const dashboardApi = {
     getAlerts: (limit?: number): Promise<Alert[]> =>
         request<Alert[]>(`/alerts${limit ? `?limit=${limit}` : ''}`),
 
-    // Refresh alerts from NOAA API
+    // Refresh alerts from IMD/CWC API
     refreshAlerts: (): Promise<{
         status: string;
         message: string;
@@ -224,18 +224,18 @@ export const dashboardApi = {
     populateSampleData: (): Promise<{ status: string; message: string }> =>
         request('/dashboard/populate-sample-data', { method: 'POST' }),
 
-    // Refresh USGS data
-    refreshUsgsData: (): Promise<{ status: string; message: string; job_id: string }> =>
-        request('/dashboard/refresh-usgs-data', { method: 'POST' }),
+    // Refresh river discharge data
+    refreshRiverData: (): Promise<{ status: string; message: string; job_id: string }> =>
+        request('/dashboard/refresh-river-data', { method: 'POST' }),
 
-    // Update single watershed with USGS data
+    // Update single watershed with Open-Meteo data
     updateSingleWatershed: (watershedId: number): Promise<{ status: string; message: string; job_id: string }> =>
         request(`/dashboard/update-single-watershed/${watershedId}`, { method: 'POST' }),
 
     // Get dashboard insights and metrics
     getDashboardInsights: (): Promise<{
         model_accuracy: number;
-        usgs_stations: number;
+        cwc_stations: number;
         total_stations: number;
         rising_trend_count: number;
         average_flow: number;

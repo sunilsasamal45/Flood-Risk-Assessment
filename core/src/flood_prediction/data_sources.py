@@ -505,7 +505,7 @@ def fetch_and_update_usgs_data(db_path: str, site_codes: Optional[List[str]] = N
         return results
 
 
-def fetch_and_store_noaa_alerts(db_path: str) -> Dict[str, Any]:
+def fetch_and_store_imd_alerts(db_path: str) -> Dict[str, Any]:
     """
     Fetch India flood alerts via Open-Meteo weather warnings.
     Function name kept for backward compatibility.
@@ -573,7 +573,7 @@ def fetch_and_store_noaa_alerts(db_path: str) -> Dict[str, Any]:
                 issued_time=datetime.now(timezone.utc).isoformat(),
                 expires_time=expires_time,
                 counties=watershed.get('region', ''),
-                noaa_id=f"imd_{watershed['id']}_{datetime.now().strftime('%Y%m%d%H')}"
+                imd_id=f"imd_{watershed['id']}_{datetime.now().strftime('%Y%m%d%H')}"
             )
             if alert_id:
                 results["alerts_stored"] += 1
@@ -676,7 +676,7 @@ def create_watersheds_from_usgs_sites(
                 flood_stage=flood_stage,
                 risk_level="Low",
                 risk_score=1.0,
-                usgs_site_code=code,
+                river_site_code=code,
                 data_source="openmeteo",
             )
             created += 1

@@ -378,9 +378,9 @@ const getAgentInsightDescription = (title: string, agentType: string): { title: 
         dataSource: "Various monitoring and analysis systems",
         technicalDetails: "• Metric tracking and analysis system\n• Updates based on agent check intervals\n• Integration with multiple data sources\n• Real-time processing and validation",
         urls: [
-            "https://www.usgs.gov/mission-areas/water-resources",
+            "https://cwc.gov.in",
             "https://www.weather.gov/",
-            "https://www.fema.gov/"
+            "https://ndma.gov.in/"
         ]
     }
 }
@@ -469,19 +469,24 @@ const AgentInsightCard = ({ insight, agentType }: { insight: AgentInsight, agent
 
 
 // Enhanced metric card component using shadcn/ui
-const MetricCard = ({ title, value, change, icon: Icon, trend }: {
+const MetricCard = ({ title, value, change, icon: Icon, trend, onClick }: {
     title: string
     value: string | number
     change?: string
     icon: any
     trend?: 'up' | 'down' | 'stable'
+    onClick?: () => void
 }) => (
-    <Card className="bg-card backdrop-blur-sm border-border">
+    <Card
+        className={`bg-card backdrop-blur-sm border-border transition-all duration-200 ${onClick ? 'cursor-pointer hover:border-primary hover:bg-card/80 hover:scale-[1.02] active:scale-[0.99]' : ''}`}
+        onClick={onClick}
+    >
         <CardContent className="p-4">
             <div className="flex items-center justify-between">
                 <div className="flex-1">
                     <CardDescription className="text-sm font-medium text-muted-foreground mb-1">
                         {title}
+                        {onClick && <span className="ml-1 text-xs text-primary opacity-70">↗ View on Map</span>}
                     </CardDescription>
                     <div className="text-2xl font-bold text-card-foreground mb-1">{value}</div>
                     {change && (
@@ -506,7 +511,7 @@ const MetricCard = ({ title, value, change, icon: Icon, trend }: {
 
 interface DashboardInsights {
     model_accuracy: number;
-    usgs_stations: number;
+    cwc_stations: number;
     total_stations: number;
     rising_trend_count: number;
     average_flow: number;
@@ -519,6 +524,7 @@ interface DashboardInsights {
 
 export default function UnifiedDashboard() {
     const [activeTab, setActiveTab] = useState(1)
+    const [mapFilter, setMapFilter] = useState<'all' | 'high' | 'warnings'>('all')
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
     const [insightsData, setInsightsData] = useState<DashboardInsights | null>(null)
@@ -739,7 +745,7 @@ I can help you with:
         fetchDashboardData()
     }
 
-    const handleUsgsRefresh = async () => {
+    const handleRiverRefresh = async () => {
         try {
             setRefreshingData(true)
             setRefreshStatus('Collecting data from all sources...')
@@ -1199,7 +1205,7 @@ I can help you with:
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={handleUsgsRefresh}
+                                                onClick={handleRiverRefresh}
                                                 disabled={refreshingData}
                                                 className="text-xs mt-2 w-full"
                                             >
@@ -1422,15 +1428,27 @@ I can help you with:
                 {/* Center Map Content */}
                 <div className="flex-1 flex flex-col">
                     <div className="flex-1 p-6">
-                        <div className={`bg-gray-900/30 rounded-xl h-full border border-border overflow-hidden ${activeTab === 4 ? 'flex flex-col' : 'flex items-center justify-center'}`}>
+                        <div className={`bg-gray-900/30 rounded-xl h-full border border-border overflow-hidden relative ${activeTab === 4 ? 'flex flex-col' : 'flex items-center justify-center'}`}>
                             <div className="h-full w-full">
                                 {activeTab === 1 && (
                                     <div className="h-full w-full">
+                                        {mapFilter !== 'all' && (
+                                            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full shadow flex items-center gap-2">
+                                                {mapFilter === 'high' ? '🔴 Showing High Risk Sites' : '⚠️ Showing Flood Warning Areas'}
+                                                <button onClick={() => setMapFilter('all')} className="ml-1 hover:opacity-70">✕</button>
+                                            </div>
+                                        )}
                                         <GlobalWatershedMap
-                                            watersheds={dashboardData.watersheds}
+                                            watersheds={
+                                                mapFilter === 'high'
+                                                    ? dashboardData.watersheds.filter(w => w.current_risk_level === 'High')
+                                                    : mapFilter === 'warnings'
+                                                    ? dashboardData.watersheds.filter(w => (w.risk_score ?? 0) >= 5)
+                                                    : dashboardData.watersheds
+                                            }
                                             height="100%"
                                             center={currentRegionInfo ? [currentRegionInfo.center_lat, currentRegionInfo.center_lng] : undefined}
-                                            zoom={currentRegionInfo?.zoom}
+                                            zoom={mapFilter !== 'all' ? 6 : currentRegionInfo?.zoom}
                                             onWatershedClick={(watershed) => {
                                                 console.log('Viewing details for:', watershed.name);
                                             }}
@@ -1897,8 +1915,9 @@ I can help you with:
                             <MetricCard
                                 title="🌊 Water Level Monitoring"
                                 value={`${insightsData.total_stations} Sites`}
-                                change={`${insightsData.usgs_stations} real-time`}
+                                change={`${insightsData.cwc_stations} real-time`}
                                 icon={MapPin}
+                                onClick={() => { setMapFilter('all'); setActiveTab(1); }}
                             />
                             <MetricCard
                                 title="⚠️ Flood Warnings"
@@ -1906,6 +1925,7 @@ I can help you with:
                                 change={`${analyticsData.summary.high_risk_count} critical`}
                                 trend={insightsData.rising_trend_count > 0 ? "up" : "down"}
                                 icon={AlertTriangle}
+                                onClick={() => { setMapFilter('warnings'); setActiveTab(1); }}
                             />
                             <MetricCard
                                 title="🎯 Risk Assessment"
